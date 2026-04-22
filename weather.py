@@ -299,7 +299,7 @@ def get_current_colors():
 
 # ==================== 像素小人组件 ====================
 def get_avatar_with_clothes(temp):
-    """根据温度返回像素小人HTML（会动的）"""
+    """根据温度返回像素小人（纯文本版，兼容性最好）"""
 
     if temp < 0:
         face = "🥶"
@@ -309,12 +309,12 @@ def get_avatar_with_clothes(temp):
     elif temp < 10:
         face = "😊"
         clothes = "🧥"
-        accessory = ""
+        accessory = "🚶"
         action = "🏃 " + ("快步行走" if st.session_state.language == "中文" else "Walking fast")
     elif temp < 20:
         face = "😎"
         clothes = "🧥"
-        accessory = ""
+        accessory = "🚶"
         action = "🚶 " + ("悠闲散步" if st.session_state.language == "中文" else "Leisurely walking")
     elif temp < 30:
         face = "😄"
@@ -327,74 +327,17 @@ def get_avatar_with_clothes(temp):
         accessory = "🍉"
         action = "🥵 " + ("擦汗中" if st.session_state.language == "中文" else "Wiping sweat")
 
-    avatar_html = f"""
-    <div style="text-align: center; padding: 15px;">
-        <style>
-            @keyframes float {{
-                0%, 100% {{ transform: translateY(0px); }}
-                50% {{ transform: translateY(-8px); }}
-            }}
-            @keyframes shake {{
-                0%, 100% {{ transform: rotate(0deg); }}
-                25% {{ transform: rotate(5deg); }}
-                75% {{ transform: rotate(-5deg); }}
-            }}
-            @keyframes walk {{
-                0%, 100% {{ transform: translateX(0px); }}
-                50% {{ transform: translateX(8px); }}
-            }}
-            .avatar-container {{
-                animation: float 1.5s ease-in-out infinite;
-                display: inline-block;
-                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-                border-radius: 30px;
-                padding: 20px 30px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            }}
-            .avatar-emoji {{
-                font-size: 80px;
-                display: inline-block;
-                animation: shake 0.5s ease-in-out infinite;
-            }}
-            .avatar-clothes {{
-                font-size: 50px;
-                display: inline-block;
-                margin-left: 10px;
-            }}
-            .avatar-accessory {{
-                font-size: 40px;
-                animation: walk 2s ease-in-out infinite;
-                display: inline-block;
-            }}
-            .avatar-action {{
-                margin-top: 10px;
-                font-size: 14px;
-                color: #555;
-                background: rgba(255,255,255,0.8);
-                border-radius: 20px;
-                padding: 5px 15px;
-                display: inline-block;
-            }}
-        </style>
+    # 使用 st.columns 布局，纯文本显示
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown(f"### 👤 天气小人")
+        st.markdown(f"<p style='font-size: 60px; text-align: center;'>{face} {clothes}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size: 40px; text-align: center;'>{accessory}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center;'>{action}</p>")
+        st.markdown(f"<p style='font-size: 24px; font-weight: bold; text-align: center;'>{temp}°C</p>",
+                    unsafe_allow_html=True)
 
-        <div class="avatar-container">
-            <div>
-                <span class="avatar-emoji">{face}</span>
-                <span class="avatar-clothes">{clothes}</span>
-            </div>
-            <div style="margin-top: 10px;">
-                <span class="avatar-accessory">{accessory}</span>
-            </div>
-            <div class="avatar-action">
-                {action}
-            </div>
-            <div style="margin-top: 8px; font-size: 24px; font-weight: bold;">
-                {temp}°C
-            </div>
-        </div>
-    </div>
-    """
-    return avatar_html
+    return ""
 
 
 def get_dressing_advice_with_avatar(temp):
@@ -416,15 +359,13 @@ def get_dressing_advice_with_avatar(temp):
         advice = t("advice_hot")
         tip = t("tip_hot")
 
-    avatar_html = get_avatar_with_clothes(temp)
+    # 显示小人
+    get_avatar_with_clothes(temp)
 
-    col_avatar, col_advice = st.columns([1, 2])
-    with col_avatar:
-        st.markdown(avatar_html, unsafe_allow_html=True)
-    with col_advice:
-        st.markdown(f"### {t('dressing_advice')}")
-        st.markdown(f"<p style='font-size: 16px;'>{advice}</p>", unsafe_allow_html=True)
-        st.info(tip)
+    # 显示建议
+    st.markdown(f"### {t('dressing_advice')}")
+    st.markdown(f"{advice}")
+    st.info(tip)
 
 
 # ==================== 辅助函数 ====================
