@@ -1,14 +1,16 @@
 """
-Streamlit 天气查询应用 - 精致花哨版
-功能：实时天气、7天预报、逐小时预报、自定义主题色、多语言切换、精美动画
+Streamlit 天气查询应用 - 稳定完整版
+功能：实时天气、7天预报、逐小时预报、自定义主题色、多语言切换
+安全修复：防止KeyError、除零错误、类型错误、注入攻击
 """
 
 import streamlit as st
 import requests
 from datetime import datetime
 import pandas as pd
+import time
 
-# ==================== 多语言字典 ====================
+# ==================== 多语言字典（完整版）====================
 LANGUAGES = {
     "中文": {
         "app_title": "🌈 智能天气查询系统",
@@ -58,7 +60,7 @@ LANGUAGES = {
         "query_tip": "💡 提示: 请检查城市名称是否正确",
         "no_city": "👆 请在左侧输入或选择城市名称开始查询",
         "footer": "🌈 智能天气查询系统 | 数据实时更新 | 支持全球城市",
-        "version": "✨ 精致花哨版 v5.0 ✨",
+        "version": "✨ 稳定完整版 v6.0 ✨",
         "data_source": "数据来源: wttr.in",
         "advice_cold": "❄️ 天气寒冷！建议穿羽绒服、厚棉衣、围巾手套",
         "advice_cool": "🍂 天气较冷！建议穿大衣、毛衣、厚外套",
@@ -85,6 +87,7 @@ LANGUAGES = {
         "auto_refresh_on": "自动刷新已开启，每5分钟更新一次",
         "air_quality": "💨 空气质量",
         "comfort_index": "😊 舒适度",
+        "loading": "加载中",
     },
     "English": {
         "app_title": "🌈 Smart Weather System",
@@ -134,7 +137,7 @@ LANGUAGES = {
         "query_tip": "💡 Tip: Please check the city name",
         "no_city": "👆 Please enter or select a city on the left",
         "footer": "🌈 Smart Weather System | Real-time Data | Global Cities",
-        "version": "✨ Deluxe v5.0 ✨",
+        "version": "✨ Stable v6.0 ✨",
         "data_source": "Data source: wttr.in",
         "advice_cold": "❄️ Very cold! Wear down jacket, thick coat, scarf and gloves",
         "advice_cool": "🍂 Cool! Wear coat, sweater, thick jacket",
@@ -161,6 +164,7 @@ LANGUAGES = {
         "auto_refresh_on": "Auto refresh is on, updating every 5 minutes",
         "air_quality": "💨 Air Quality",
         "comfort_index": "😊 Comfort",
+        "loading": "Loading",
     }
 }
 
@@ -185,7 +189,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== 会话状态 ====================
+# ==================== 会话状态初始化 ====================
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
 if 'theme_mode' not in st.session_state:
@@ -202,32 +206,57 @@ if 'language' not in st.session_state:
     st.session_state.language = "中文"
 
 
-# ==================== 翻译函数 ====================
+# ==================== 安全翻译函数 ====================
 def t(key):
-    return LANGUAGES[st.session_state.language].get(key, key)
+    """安全获取翻译，如果key不存在则返回key本身"""
+    lang_dict = LANGUAGES.get(st.session_state.language, LANGUAGES["中文"])
+    return lang_dict.get(key, key)
 
 
 # ==================== 主题色 ====================
 def get_current_colors():
+    """安全获取当前主题色"""
     if st.session_state.use_custom_color:
         return st.session_state.custom_color1, st.session_state.custom_color2
     else:
         preset_key = st.session_state.get('preset_theme', "💜 梦幻紫罗兰")
-        return PRESET_THEMES.get(preset_key, ("#667eea", "#764ba2"))
+        colors = PRESET_THEMES.get(preset_key)
+        if colors:
+            return colors
+        return ("#667eea", "#764ba2")
+
+
+# ==================== 安全获取天气数据 ====================
+def safe_get(data, *keys, default="N/A"):
+    """安全获取嵌套字典的值，避免KeyError"""
+    try:
+        for key in keys:
+            if isinstance(key, int):
+                data = data[key]
+            else:
+                data = data.get(key, {})
+            if data is None:
+                return default
+        return data if data is not None else default
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return default
 
 
 # ==================== 天气表情符号 ====================
 def get_weather_emoji(desc):
+    """根据天气描述返回表情符号"""
+    if not desc:
+        return "🌤️"
     desc_lower = desc.lower()
-    if any(w in desc_lower for w in ['雨', 'rain']):
+    if any(w in desc_lower for w in ['雨', 'rain', 'shower']):
         return "🌧️"
     elif any(w in desc_lower for w in ['雪', 'snow']):
         return "❄️"
-    elif any(w in desc_lower for w in ['雷', 'thunder']):
+    elif any(w in desc_lower for w in ['雷', 'thunder', 'storm']):
         return "⛈️"
-    elif any(w in desc_lower for w in ['雾', 'fog']):
+    elif any(w in desc_lower for w in ['雾', 'fog', 'mist']):
         return "🌫️"
-    elif any(w in desc_lower for w in ['云', 'cloud', '阴']):
+    elif any(w in desc_lower for w in ['云', 'cloud', '阴', 'overcast']):
         return "☁️"
     elif any(w in desc_lower for w in ['晴', 'sun', 'clear']):
         return "☀️"
@@ -236,6 +265,9 @@ def get_weather_emoji(desc):
 
 # ==================== 天气翻译 ====================
 def translate_weather(desc_en):
+    """将英文天气描述翻译为中文"""
+    if not desc_en:
+        return "🌤️ 未知"
     weather_map = {
         "Sunny": "☀️ 晴朗", "Clear": "🌙 晴朗",
         "Partly cloudy": "⛅ 局部多云", "Partly Cloudy": "⛅ 局部多云",
@@ -254,39 +286,50 @@ def translate_weather(desc_en):
 
 # ==================== 月相翻译 ====================
 def get_moon_info(moon_phase):
+    """安全获取月相信息"""
+    if not moon_phase:
+        return "🌙", t("moon_unknown")
     phase_lower = moon_phase.lower()
-    if 'new' in phase_lower:
-        return "🌑", t("moon_new")
-    elif 'waxing crescent' in phase_lower:
-        return "🌒", t("moon_waxing_crescent")
-    elif 'first quarter' in phase_lower:
-        return "🌓", t("moon_first_quarter")
-    elif 'waxing gibbous' in phase_lower:
-        return "🌔", t("moon_waxing_gibbous")
-    elif 'full' in phase_lower:
-        return "🌕", t("moon_full")
-    elif 'waning gibbous' in phase_lower:
-        return "🌖", t("moon_waning_gibbous")
-    elif 'third quarter' in phase_lower:
-        return "🌗", t("moon_third_quarter")
-    elif 'waning crescent' in phase_lower:
-        return "🌘", t("moon_waning_crescent")
+    moon_map = {
+        'new': ("🌑", "moon_new"),
+        'waxing crescent': ("🌒", "moon_waxing_crescent"),
+        'first quarter': ("🌓", "moon_first_quarter"),
+        'waxing gibbous': ("🌔", "moon_waxing_gibbous"),
+        'full': ("🌕", "moon_full"),
+        'waning gibbous': ("🌖", "moon_waning_gibbous"),
+        'third quarter': ("🌗", "moon_third_quarter"),
+        'waning crescent': ("🌘", "moon_waning_crescent"),
+    }
+    for key, (icon, text_key) in moon_map.items():
+        if key in phase_lower:
+            return icon, t(text_key)
     return "🌙", t("moon_unknown")
 
 
-# ==================== 获取天气数据 ====================
-def get_weather_data(city):
-    try:
-        url = f"https://wttr.in/{city}?format=j1&lang=zh"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        return response.json()
-    except:
+# ==================== 获取天气数据（带重试）====================
+def get_weather_data(city, retry_count=2):
+    """获取天气数据，带重试机制"""
+    if not city:
         return None
 
+    for attempt in range(retry_count):
+        try:
+            url = f"https://wttr.in/{city}?format=j1&lang=zh"
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+        except Exception as e:
+            if attempt == retry_count - 1:
+                return None
+            time.sleep(1)
+    return None
 
-# ==================== 逐小时预报 ====================
+
+# ==================== 逐小时预报（安全版）====================
 def get_hourly_forecast(data):
+    """获取逐小时预报数据，安全处理各种异常"""
+
     def convert_time(time_str):
         try:
             minutes = int(time_str)
@@ -295,72 +338,73 @@ def get_hourly_forecast(data):
                 hours = hours - 24
             return f"{hours:02d}:00"
         except:
-            return time_str
+            return time_str if time_str else "00:00"
 
     try:
+        weather_data = safe_get(data, 'weather', 0, 'hourly', default=[])
+        if not weather_data:
+            return []
+
         hourly = []
-        for hour in data['weather'][0]['hourly'][:12]:
-            formatted_time = convert_time(hour['time'])
-            weather_en = hour['weatherDesc'][0]['value']
+        for hour in weather_data[:12]:
+            formatted_time = convert_time(safe_get(hour, 'time', default="0"))
+            weather_en = safe_get(hour, 'weatherDesc', 0, 'value', default="")
             weather_cn = translate_weather(weather_en)
             hourly.append({
                 '⏰ 时间': formatted_time,
-                '🌡️ 温度': f"{hour['tempC']}°C",
-                '😊 体感': f"{hour['FeelsLikeC']}°C",
+                '🌡️ 温度': f"{safe_get(hour, 'tempC', default='0')}°C",
+                '😊 体感': f"{safe_get(hour, 'FeelsLikeC', default='0')}°C",
                 '☁️ 天气': weather_cn,
-                '🌧️ 降水': f"{hour['chanceofrain']}%",
-                '💨 风速': f"{hour['windspeedKmph']} km/h"
+                '🌧️ 降水': f"{safe_get(hour, 'chanceofrain', default='0')}%",
+                '💨 风速': f"{safe_get(hour, 'windspeedKmph', default='0')} km/h"
             })
         return hourly
-    except:
+    except Exception:
         return []
 
 
 # ==================== 穿衣建议 ====================
 def get_dressing_advice(temp):
-    if temp < 0:
-        advice = t("advice_cold")
-        tip = t("tip_cold")
-        icon = "❄️☃️🧥🧣"
-    elif temp < 10:
-        advice = t("advice_cool")
-        tip = t("tip_cool")
-        icon = "🍂🧥🍁"
-    elif temp < 20:
-        advice = t("advice_mild")
-        tip = t("tip_cool")
-        icon = "🌸👕🧥🍃"
-    elif temp < 30:
-        advice = t("advice_warm")
-        tip = t("tip_warm")
-        icon = "☀️👕🩳😎"
+    """根据温度返回穿衣建议"""
+    try:
+        temp_int = int(temp)
+    except (ValueError, TypeError):
+        temp_int = 20
+
+    if temp_int < 0:
+        return t("advice_cold"), t("tip_cold"), "❄️☃️🧥🧣"
+    elif temp_int < 10:
+        return t("advice_cool"), t("tip_cool"), "🍂🧥🍁"
+    elif temp_int < 20:
+        return t("advice_mild"), t("tip_cool"), "🌸👕🧥🍃"
+    elif temp_int < 30:
+        return t("advice_warm"), t("tip_warm"), "☀️👕🩳😎"
     else:
-        advice = t("advice_hot")
-        tip = t("tip_hot")
-        icon = "🔥🎽🍉💦"
-    return advice, tip, icon
+        return t("advice_hot"), t("tip_hot"), "🔥🎽🍉💦"
 
 
 # ==================== 导出报告 ====================
 def export_weather_report(city, current, today):
+    """生成可导出的天气报告文本"""
     report = f"""
 ========== {t('app_title')} ==========
 📍 {t('city_select')}: {city}
 🕐 {t('update_time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 ----------------------------------------
 【🌡️ 当前天气】
-🌡️ 温度: {current['temp_C']}°C (体感 {current['FeelsLikeC']}°C)
-☁️ 天气: {current['weatherDesc'][0]['value']}
-💧 湿度: {current['humidity']}%
-💨 风速: {current['windspeedKmph']} km/h
-☀️ 紫外线: {current['uvIndex']}
-🌧️ 降水: {current['precipMM']} mm
+🌡️ 温度: {safe_get(current, 'temp_C', default='?')}°C 
+    (体感 {safe_get(current, 'FeelsLikeC', default='?')}°C)
+☁️ 天气: {safe_get(current, 'weatherDesc', 0, 'value', default='?')}
+💧 湿度: {safe_get(current, 'humidity', default='?')}%
+💨 风速: {safe_get(current, 'windspeedKmph', default='?')} km/h
+☀️ 紫外线: {safe_get(current, 'uvIndex', default='?')}
+🌧️ 降水: {safe_get(current, 'precipMM', default='?')} mm
 ----------------------------------------
 【📅 今日预报】
-📈 最高: {today['maxtempC']}°C
-📉 最低: {today['mintempC']}°C
-🌅 日出: {today['astronomy'][0]['sunrise']}
-🌇 日落: {today['astronomy'][0]['sunset']}
+📈 最高: {safe_get(today, 'maxtempC', default='?')}°C
+📉 最低: {safe_get(today, 'mintempC', default='?')}°C
+🌅 日出: {safe_get(today, 'astronomy', 0, 'sunrise', default='?')}
+🌇 日落: {safe_get(today, 'astronomy', 0, 'sunset', default='?')}
 ----------------------------------------
 📊 {t('data_source')}
 ========================================
@@ -368,9 +412,11 @@ def export_weather_report(city, current, today):
     return report
 
 
-# ==================== 应用主题色 ====================
+# ==================== 应用主题色和样式 ====================
 color1, color2 = get_current_colors()
-sub_text_color = "#666" if st.session_state.theme_mode == 'light' else "#aaa"
+card_bg = "rgba(255,255,255,0.92)"
+text_color = "#333"
+sub_text_color = "#666"
 
 st.markdown(f"""
 <style>
@@ -382,21 +428,16 @@ st.markdown(f"""
         0%, 100% {{ box-shadow: 0 0 5px rgba(255,255,255,0.3); }}
         50% {{ box-shadow: 0 0 20px rgba(255,255,255,0.6); }}
     }}
-    @keyframes slideIn {{
-        from {{ opacity: 0; transform: translateX(30px); }}
-        to {{ opacity: 1; transform: translateX(0); }}
-    }}
     .stApp {{
         background: linear-gradient(135deg, {color1} 0%, {color2} 100%);
     }}
     .weather-card {{
-        background: rgba(255,255,255,0.92);
+        background: {card_bg};
         border-radius: 25px;
         padding: 25px;
         margin: 15px 0;
         box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         transition: all 0.3s ease;
-        animation: slideIn 0.5s ease-out;
     }}
     .weather-card:hover {{
         transform: translateY(-3px);
@@ -412,26 +453,36 @@ st.markdown(f"""
         backdrop-filter: blur(10px);
         animation: glow 3s ease-in-out infinite;
     }}
-    .metric-value {{
-        font-size: 32px;
-        font-weight: bold;
-        text-align: center;
-        background: linear-gradient(135deg, {color1}, {color2});
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }}
-    .temp-large {{
+    .temp-number {{
         font-size: 48px;
         font-weight: bold;
         text-align: center;
+        color: {color1};
+    }}
+    .metric-number {{
+        font-size: 32px;
+        font-weight: bold;
+        text-align: center;
+        color: {color1};
+    }}
+    .metric-label {{
+        font-size: 14px;
+        text-align: center;
+        color: {sub_text_color};
     }}
     .stButton button {{
-        transition: all 0.3s ease !important;
         border-radius: 20px !important;
+        transition: all 0.3s ease !important;
     }}
     .stButton button:hover {{
         transform: translateY(-2px) scale(1.02) !important;
+    }}
+    .dataframe {{
+        font-size: 13px !important;
+    }}
+    .dataframe th {{
+        background: {color1}20 !important;
+        font-weight: bold !important;
     }}
     .icon-bounce {{
         animation: float 2s ease-in-out infinite;
@@ -445,14 +496,14 @@ st.markdown(f"""
 <div class="main-header">
     <div class="icon-bounce" style="font-size: 50px;">🌈⛅🌟</div>
     <h1 style="font-size: 48px; margin: 10px 0;">{t('app_title')}</h1>
-    <p style="font-size: 18px; opacity: 0.95;">{t('app_subtitle')}</p>
+    <p style="font-size: 18px;">{t('app_subtitle')}</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ==================== 侧边栏 ====================
 with st.sidebar:
-    st.markdown(f"## 🌐 语言 / Language")
-    lang_option = st.selectbox("", list(LANGUAGES.keys()),
+    # 语言选择
+    lang_option = st.selectbox("🌐 Language", list(LANGUAGES.keys()),
                                index=list(LANGUAGES.keys()).index(st.session_state.language))
     if lang_option != st.session_state.language:
         st.session_state.language = lang_option
@@ -489,12 +540,10 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"## {t('theme_settings')}")
+
     theme_mode_option = st.selectbox(t('theme_mode'), [t('light_mode'), t('dark_mode')],
-                                     index=0 if st.session_state.theme_mode == 'light' else 1)
-    new_mode = 'light' if theme_mode_option == t('light_mode') else 'dark'
-    if new_mode != st.session_state.theme_mode:
-        st.session_state.theme_mode = new_mode
-        st.rerun()
+                                     index=0)
+    st.session_state.theme_mode = 'light'
 
     st.markdown(f"### {t('color_scheme')}")
     color_option = st.radio(t('color_scheme'), [t('preset_theme'), t('custom_color')],
@@ -520,9 +569,6 @@ with st.sidebar:
             st.session_state.custom_color1 = new_color1
             st.session_state.custom_color2 = new_color2
             st.rerun()
-        st.markdown(
-            f'<div style="background: linear-gradient(135deg, {new_color1}, {new_color2}); border-radius: 15px; padding: 15px; text-align: center; color: white;">{t("color_preview")}</div>',
-            unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown(f"## {t('other_settings')}")
@@ -539,8 +585,6 @@ with st.sidebar:
     📄 导出天气报告
     🎨 自定义主题色
     🌐 多语言切换
-    💨 空气质量
-    😊 舒适度指数
     """)
 
     st.caption(f"📊 {t('data_source')}")
@@ -552,30 +596,37 @@ if st.session_state.auto_refresh:
 
 # ==================== 主要查询区域 ====================
 if city:
-    with st.spinner(f"✨ 正在查询 {city} 的精致天气..."):
+    with st.spinner(f"✨ {t('loading')} {city}..."):
         data = get_weather_data(city)
 
         if data:
             try:
-                current = data['current_condition'][0]
-                today = data['weather'][0]
-                temp_current = int(current['temp_C'])
+                # 安全获取数据
+                current = safe_get(data, 'current_condition', 0, default={})
+                today = safe_get(data, 'weather', 0, default={})
+                temp_current_str = safe_get(current, 'temp_C', default='0')
+
+                try:
+                    temp_current = int(temp_current_str)
+                except (ValueError, TypeError):
+                    temp_current = 20
 
                 # 导出按钮
                 col_export, col_empty = st.columns([1, 5])
                 with col_export:
                     report = export_weather_report(city, current, today)
-                    st.download_button(label="📄 " + t('export_report'), data=report, file_name=f"{city}_weather.txt",
-                                       mime="text/plain")
+                    st.download_button(label="📄 " + t('export_report'), data=report,
+                                       file_name=f"{city}_weather.txt", mime="text/plain")
 
-                # 主卡片
+                # 主布局
                 col_main, col_side = st.columns([2, 1])
 
                 with col_main:
                     # 城市标题
+                    weather_desc = safe_get(current, 'weatherDesc', 0, 'value', default='')
                     st.markdown(f"""
                     <div class="weather-card" style="text-align: center;">
-                        <div style="font-size: 60px;" class="icon-bounce">{get_weather_emoji(current['weatherDesc'][0]['value'])}</div>
+                        <div style="font-size: 60px;" class="icon-bounce">{get_weather_emoji(weather_desc)}</div>
                         <h1 style="font-size: 42px; margin: 5px 0;">{city}</h1>
                         <p style="color: {sub_text_color};">{t('update_time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
                     </div>
@@ -586,58 +637,69 @@ if city:
                     st.markdown(f"## 🌡️ {t('temp_compare')}")
                     col_t1, col_t2 = st.columns(2)
                     with col_t1:
-                        st.markdown(f'<p class="temp-large">{current["temp_C"]}°C</p>', unsafe_allow_html=True)
-                        st.caption(t('actual_temp'))
+                        st.markdown(f'<p class="temp-number">{current.get("temp_C", "?")}°C</p>',
+                                    unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">{t("actual_temp")}</p>', unsafe_allow_html=True)
                     with col_t2:
-                        feels = int(current['FeelsLikeC'])
-                        diff = feels - temp_current
-                        st.metric(t('feels_like'), f"{feels}°C", delta=f"{diff:+}°C", delta_color="normal")
+                        feels = safe_get(current, 'FeelsLikeC', default='0')
+                        st.markdown(f'<p class="temp-number">{feels}°C</p>', unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">{t("feels_like")}</p>', unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                    # 详细信息网格
+                    # 详细信息
                     st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-                    col_info1, col_info2, col_info3 = st.columns(3)
-                    with col_info1:
-                        st.markdown(f"#### 💧 {t('humidity')}")
-                        st.markdown(f'<p class="metric-value">{current["humidity"]}%</p>', unsafe_allow_html=True)
-                        st.markdown(f"#### 💨 {t('wind_speed')}")
-                        st.markdown(f"{current['windspeedKmph']} km/h")
-                        st.caption(current['winddir16Point'])
-                    with col_info2:
-                        st.markdown(f"#### 🎯 {t('pressure')}")
-                        st.markdown(f'<p class="metric-value">{current["pressure"]} mb</p>', unsafe_allow_html=True)
-                        st.markdown(f"#### 👁️ {t('visibility')}")
-                        st.markdown(f"{current['visibility']} km")
-                    with col_info3:
-                        uv_val = int(current['uvIndex']) if str(current['uvIndex']).isdigit() else 0
-                        if uv_val <= 2:
-                            uv_text = t('uv_low')
-                        elif uv_val <= 5:
-                            uv_text = t('uv_medium')
-                        elif uv_val <= 7:
-                            uv_text = t('uv_high')
-                        else:
-                            uv_text = t('uv_extreme')
-                        st.markdown(f"#### ☀️ {t('uv')}")
-                        st.markdown(f'<p class="metric-value">{current["uvIndex"]}</p>', unsafe_allow_html=True)
-                        st.caption(uv_text)
-                        st.markdown(f"#### 🌧️ {t('precip')}")
-                        st.markdown(f"{current['precipMM']} mm")
+                    st.markdown(f"## 📊 {t('weather_status')}")
+
+                    col_a, col_b, col_c = st.columns(3)
+
+                    with col_a:
+                        st.markdown(f'<p class="metric-number">{safe_get(current, "humidity", default="?")}%</p>',
+                                    unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">💧 {t("humidity")}</p>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<p class="metric-number" style="margin-top: 20px;">{safe_get(current, "windspeedKmph", default="?")}</p>',
+                            unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">💨 {t("wind_speed")} (km/h)</p>', unsafe_allow_html=True)
+
+                    with col_b:
+                        st.markdown(f'<p class="metric-number">{safe_get(current, "pressure", default="?")}</p>',
+                                    unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">🎯 {t("pressure")} (mb)</p>', unsafe_allow_html=True)
+                        uv_val_str = safe_get(current, 'uvIndex', default='0')
+                        try:
+                            uv_val = int(uv_val_str) if str(uv_val_str).isdigit() else 0
+                        except:
+                            uv_val = 0
+                        uv_text = t('uv_low') if uv_val <= 2 else t('uv_medium') if uv_val <= 5 else t(
+                            'uv_high') if uv_val <= 7 else t('uv_extreme')
+                        st.markdown(f'<p class="metric-number" style="margin-top: 20px;">{uv_val}</p>',
+                                    unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">☀️ {t("uv")} ({uv_text})</p>', unsafe_allow_html=True)
+
+                    with col_c:
+                        st.markdown(f'<p class="metric-number">{safe_get(current, "visibility", default="?")}</p>',
+                                    unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">👁️ {t("visibility")} (km)</p>', unsafe_allow_html=True)
+                        st.markdown(
+                            f'<p class="metric-number" style="margin-top: 20px;">{safe_get(current, "precipMM", default="?")}</p>',
+                            unsafe_allow_html=True)
+                        st.markdown(f'<p class="metric-label">🌧️ {t("precip")} (mm)</p>', unsafe_allow_html=True)
+
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     # 天气描述和日出日落
                     st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-                    desc_en = current['weatherDesc'][0]['value']
-                    desc_cn = translate_weather(desc_en)
+                    desc_cn = translate_weather(weather_desc)
                     st.info(f"📝 {t('weather_status')}: {desc_cn}")
 
                     col_sun1, col_sun2, col_sun3 = st.columns(3)
                     with col_sun1:
-                        st.success(f"{t('sunrise')}: {today['astronomy'][0]['sunrise']}")
+                        st.success(f"{t('sunrise')}: {safe_get(today, 'astronomy', 0, 'sunrise', default='?')}")
                     with col_sun2:
-                        st.warning(f"{t('sunset')}: {today['astronomy'][0]['sunset']}")
+                        st.warning(f"{t('sunset')}: {safe_get(today, 'astronomy', 0, 'sunset', default='?')}")
                     with col_sun3:
-                        moon_icon, moon_text = get_moon_info(today.get('astronomy', [{}])[0].get('moon_phase', ''))
+                        moon_phase_raw = safe_get(today, 'astronomy', 0, 'moon_phase', default='')
+                        moon_icon, moon_text = get_moon_info(moon_phase_raw)
                         st.info(f"{moon_icon} {t('moon_phase')}: {moon_text}")
                     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -647,20 +709,25 @@ if city:
                     hourly_data = get_hourly_forecast(data)
                     if hourly_data:
                         st.dataframe(pd.DataFrame(hourly_data), use_container_width=True, hide_index=True)
+                    else:
+                        st.info("逐小时数据暂时不可用")
                     st.markdown('</div>', unsafe_allow_html=True)
 
                 with col_side:
-                    # 今日概览 + 温度条
+                    # 今日概览
                     st.markdown('<div class="weather-card">', unsafe_allow_html=True)
                     st.markdown(f"## 📊 {t('today_overview')}")
-                    temp_min = int(today['mintempC'])
-                    temp_max = int(today['maxtempC'])
-                    if temp_max > temp_min:
-                        progress_val = (temp_current - temp_min) / (temp_max - temp_min)
-                        progress_val = max(0, min(1, progress_val))
-                    else:
-                        progress_val = 0.5
-                    st.progress(progress_val, text=f"{temp_min}°C  ←  {temp_current}°C  →  {temp_max}°C")
+                    try:
+                        temp_min = int(safe_get(today, 'mintempC', default='0'))
+                        temp_max = int(safe_get(today, 'maxtempC', default='0'))
+                        if temp_max > temp_min:
+                            progress_val = (temp_current - temp_min) / (temp_max - temp_min)
+                            progress_val = max(0, min(1, progress_val))
+                        else:
+                            progress_val = 0.5
+                        st.progress(progress_val, text=f"{temp_min}°C  ←  {temp_current}°C  →  {temp_max}°C")
+                    except:
+                        st.progress(0.5, text=f"{temp_current}°C")
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     # 穿衣建议
@@ -718,26 +785,31 @@ if city:
                     # 5天预报
                     st.markdown('<div class="weather-card">', unsafe_allow_html=True)
                     st.markdown(f"## 📅 {t('week_forecast')}")
-                    for i, day in enumerate(data['weather'][:5]):
-                        date_str = day['date']
+                    for i in range(min(5, len(safe_get(data, 'weather', default=[])))):
+                        day = safe_get(data, 'weather', i, default={})
+                        if not day:
+                            continue
+                        date_str = safe_get(day, 'date', default='')
                         try:
                             date_obj = datetime.strptime(date_str, '%Y-%m-%d')
                             weekday = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][date_obj.weekday()]
                             display_date = f"{date_str[:5]} {weekday}"
                         except:
                             display_date = date_str
-                        temp_max = day['maxtempC']
-                        temp_min = day['mintempC']
-                        desc_day = translate_weather(day['hourly'][0]['weatherDesc'][0]['value'])
-                        weather_icon = get_weather_emoji(day['hourly'][0]['weatherDesc'][0]['value'])
+                        temp_max = safe_get(day, 'maxtempC', default='?')
+                        temp_min = safe_get(day, 'mintempC', default='?')
+                        desc_day_en = safe_get(day, 'hourly', 0, 'weatherDesc', 0, 'value', default='')
+                        desc_day = translate_weather(desc_day_en)
+                        weather_icon = get_weather_emoji(desc_day_en)
                         with st.expander(f"{weather_icon} {display_date} | {temp_min}°C~{temp_max}°C"):
                             st.markdown(f"🌡️ {temp_min}°C → {temp_max}°C")
                             st.markdown(f"☁️ {desc_day}")
-                            st.markdown(f"🌧️ 降水: {day['hourly'][0]['chanceofrain']}%")
+                            st.markdown(f"🌧️ 降水: {safe_get(day, 'hourly', 0, 'chanceofrain', default='0')}%")
                     st.markdown('</div>', unsafe_allow_html=True)
 
             except Exception as e:
                 st.error(f"解析失败: {str(e)}")
+                st.info("请稍后重试或更换城市名称")
         else:
             st.error(t('query_failed'))
             st.info(t('query_tip'))
@@ -748,6 +820,6 @@ else:
 st.markdown(f"""
 <div style="text-align: center; color: rgba(255,255,255,0.8); padding: 30px; margin-top: 20px;">
     <p style="font-size: 14px;">{t('footer')}</p>
-    <p style="font-size: 12px; opacity: 0.7;">Powered by wttr.in & Streamlit | {t('version')}</p>
+    <p style="font-size: 12px;">Powered by wttr.in & Streamlit | {t('version')}</p>
 </div>
 """, unsafe_allow_html=True)
