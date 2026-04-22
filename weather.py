@@ -263,7 +263,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
+# 在页面配置后添加
+st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">', unsafe_allow_html=True)
 # ==================== 会话状态初始化 ====================
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
@@ -296,261 +297,52 @@ def get_current_colors():
         preset_key = st.session_state.get('preset_theme', "💜 梦幻紫罗兰")
         return PRESET_THEMES.get(preset_key, ("#667eea", "#764ba2"))
 
-# ==================== 精致像素小人组件（使用 components.html） ====================
 
-def get_pixel_character_component(temp):
-    """使用 st.components.html 渲染精致像素小人（100%可靠）"""
-
-    # 根据温度选择服装颜色和配饰
-    if temp < 0:
-        body_color = "#5DADE2"
-        pants_color = "#2C3E50"
-        skin_color = "#FDDCB5"
-        hat = "🧣"
-        accessory = "❄️"
-        face = "🥶"
-        action = "瑟瑟发抖"
-        clothes_icon = "🧥"
-        bg_gradient = "linear-gradient(135deg, #667eea20, #764ba220)"
-    elif temp < 10:
-        body_color = "#8B6914"
-        pants_color = "#4A3728"
-        skin_color = "#FDDCB5"
-        hat = "🧢"
-        accessory = "🧤"
-        face = "😊"
-        action = "快步行走"
-        clothes_icon = "🧥"
-        bg_gradient = "linear-gradient(135deg, #667eea20, #764ba220)"
-    elif temp < 20:
-        body_color = "#52BE80"
-        pants_color = "#2E4053"
-        skin_color = "#FDDCB5"
-        hat = "🧢"
-        accessory = "🍃"
-        face = "😎"
-        action = "悠闲散步"
-        clothes_icon = "👕"
-        bg_gradient = "linear-gradient(135deg, #667eea20, #764ba220)"
-    elif temp < 30:
-        body_color = "#F4D03F"
-        pants_color = "#1B4F72"
-        skin_color = "#FDDCB5"
-        hat = "🕶️"
-        accessory = "☀️"
-        face = "😄"
-        action = "神清气爽"
-        clothes_icon = "👕"
-        bg_gradient = "linear-gradient(135deg, #667eea20, #764ba220)"
-    else:
-        body_color = "#E74C3C"
-        pants_color = "#1B4F72"
-        skin_color = "#FDDCB5"
-        hat = "🕶️"
-        accessory = "🍉"
-        face = "🥵"
-        action = "擦汗中"
-        clothes_icon = "🎽"
-        bg_gradient = "linear-gradient(135deg, #667eea20, #764ba220)"
-
-    # 完整的 HTML/CSS 代码
-    html_code = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <style>
-        @keyframes walk {{
-            0%, 100% {{ transform: translateX(0px); }}
-            25% {{ transform: translateX(4px); }}
-            75% {{ transform: translateX(-4px); }}
-        }}
-        @keyframes bounce {{
-            0%, 100% {{ transform: translateY(0px); }}
-            50% {{ transform: translateY(-6px); }}
-        }}
-        @keyframes wave {{
-            0%, 100% {{ transform: rotate(0deg); }}
-            50% {{ transform: rotate(15deg); }}
-        }}
-        @keyframes blink {{
-            0%, 90%, 100% {{ opacity: 1; }}
-            95% {{ opacity: 0; }}
-        }}
-        .pixel-container {{
-            display: inline-block;
-            background: {bg_gradient};
-            border-radius: 24px;
-            padding: 20px 25px;
-            animation: bounce 1.5s ease-in-out infinite;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            font-family: monospace;
-        }}
-        .pixel-face {{
-            font-size: 44px;
-            margin-bottom: 8px;
-            animation: blink 3s ease-in-out infinite;
-        }}
-        .pixel-body {{
-            display: grid;
-            grid-template-columns: repeat(5, 14px);
-            grid-template-rows: repeat(5, 14px);
-            gap: 1px;
-            justify-content: center;
-            margin: 8px auto;
-        }}
-        .pixel-cell {{
-            width: 14px;
-            height: 14px;
-            border-radius: 2px;
-        }}
-        .pixel-legs {{
-            display: flex;
-            justify-content: center;
-            gap: 18px;
-            margin-top: 6px;
-            animation: walk 0.6s ease-in-out infinite;
-        }}
-        .pixel-leg {{
-            width: 14px;
-            height: 22px;
-            background-color: {pants_color};
-            border-radius: 4px;
-        }}
-        .pixel-arm-left {{
-            position: relative;
-            left: -25px;
-            top: -55px;
-            font-size: 28px;
-            display: inline-block;
-            animation: wave 1.2s ease-in-out infinite;
-        }}
-        .pixel-arm-right {{
-            position: relative;
-            right: -25px;
-            top: -55px;
-            font-size: 28px;
-            display: inline-block;
-            animation: wave 1.2s ease-in-out infinite 0.3s;
-        }}
-        .pixel-accessory {{
-            font-size: 28px;
-            animation: wave 1s ease-in-out infinite;
-            display: inline-block;
-            margin: 0 5px;
-        }}
-        .pixel-hat {{
-            font-size: 32px;
-            margin-bottom: 5px;
-        }}
-        .pixel-temp {{
-            font-size: 26px;
-            font-weight: bold;
-            margin-top: 12px;
-            color: #333;
-            background: rgba(255,255,255,0.8);
-            border-radius: 20px;
-            padding: 4px 12px;
-            display: inline-block;
-        }}
-        .pixel-action {{
-            font-size: 13px;
-            color: #555;
-            margin-top: 10px;
-            background: rgba(255,255,255,0.9);
-            border-radius: 20px;
-            padding: 4px 12px;
-            display: inline-block;
-        }}
-    </style>
-    </head>
-    <body style="background: transparent; display: flex; justify-content: center; align-items: center;">
-        <div class="pixel-container">
-            <div class="pixel-hat">{hat}</div>
-            <div class="pixel-face">{face} {clothes_icon}</div>
-
-            <!-- 身体像素网格 -->
-            <div class="pixel-body">
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-                <div class="pixel-cell" style="background-color: {body_color};"></div>
-            </div>
-
-            <!-- 腿部 -->
-            <div class="pixel-legs">
-                <div class="pixel-leg"></div>
-                <div class="pixel-leg"></div>
-            </div>
-
-            <!-- 配饰和温度 -->
-            <div style="margin-top: 12px;">
-                <span class="pixel-accessory">{accessory}</span>
-            </div>
-            <div class="pixel-temp">{temp}°C</div>
-            <div class="pixel-action">{action}</div>
-        </div>
-    </body>
-    </html>
-    """
-
-    return html_code
-
+# ==================== 穿衣建议组件 ====================
 
 def get_dressing_advice_with_avatar(temp):
-    """带精致像素小人的穿衣建议"""
+    """根据温度显示穿衣建议和图标"""
 
     if temp < 0:
         advice = t("advice_cold")
         tip = t("tip_cold")
+        icon = '<i class="fas fa-snowman" style="font-size: 80px; color: #74B9FF;"></i>'
+        bg_color = "#E8F4FD"
     elif temp < 10:
         advice = t("advice_cool")
         tip = t("tip_cool")
+        icon = '<i class="fas fa-leaf" style="font-size: 80px; color: #52BE80;"></i>'
+        bg_color = "#E8F8F0"
     elif temp < 20:
         advice = t("advice_mild")
         tip = t("tip_cool")
+        icon = '<i class="fas fa-cloud-sun" style="font-size: 80px; color: #F4D03F;"></i>'
+        bg_color = "#FEF9E7"
     elif temp < 30:
         advice = t("advice_warm")
         tip = t("tip_warm")
+        icon = '<i class="fas fa-sun" style="font-size: 80px; color: #F39C12;"></i>'
+        bg_color = "#FEF5E7"
     else:
         advice = t("advice_hot")
         tip = t("tip_hot")
+        icon = '<i class="fas fa-temperature-high" style="font-size: 80px; color: #E74C3C;"></i>'
+        bg_color = "#FDEDEC"
 
     # 使用两列布局
     col_left, col_right = st.columns([1, 2])
 
     with col_left:
-        # 使用 components.html 渲染，高度设置为 400px 足够
-        html_code = get_pixel_character_component(temp)
-        st.components.v1.html(html_code, height=350, scrolling=False)
+        st.markdown(f"""
+        <div style="text-align: center; padding: 20px; background: {bg_color}; border-radius: 20px;">
+            {icon}
+            <p style="font-size: 28px; font-weight: bold; margin-top: 10px;">{temp}°C</p>
+        </div>
+        """, unsafe_allow_html=True)
 
     with col_right:
-        st.markdown(f"### {t('dressing_advice')}")
-        st.markdown(f"{advice}")
+        st.markdown(f"### 👔 {t('dressing_advice')}")
+        st.success(advice)
         st.info(tip)
 # ==================== 辅助函数 ====================
 
