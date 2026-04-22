@@ -7,7 +7,6 @@ import streamlit as st
 import requests
 from datetime import datetime
 import pandas as pd
-import time
 
 # ==================== 多语言字典 ====================
 LANGUAGES = {
@@ -162,82 +161,6 @@ LANGUAGES = {
         "auto_refresh_on": "Auto refresh is on, updating every 5 minutes",
         "air_quality": "💨 Air Quality",
         "comfort_index": "😊 Comfort",
-    },
-    "日本語": {
-        "app_title": "🌈 スマート天気システム",
-        "app_subtitle": "リアルタイム天気 | 時間別予報 | おすすめ | カスタムテーマ",
-        "city_select": "🎯 都市選択",
-        "city_placeholder": "都市名を入力",
-        "hot_cities": "🔥 人気都市",
-        "search_history": "📜 検索履歴",
-        "clear_history": "🗑️ 履歴を消去",
-        "no_history": "検索履歴がありません",
-        "theme_settings": "🎨 テーマ設定",
-        "theme_mode": "テーマモード",
-        "light_mode": "ライト",
-        "dark_mode": "ダーク",
-        "color_scheme": "配色",
-        "preset_theme": "プリセット",
-        "custom_color": "カスタム",
-        "custom_gradient": "グラデーション",
-        "color_start": "開始色",
-        "color_end": "終了色",
-        "color_preview": "プレビュー",
-        "other_settings": "⚙️ その他",
-        "auto_refresh": "🔄 自動更新（5分）",
-        "features": "📊 機能",
-        "export_report": "📄 レポート",
-        "update_time": "更新時間",
-        "temp_compare": "🌡️ 気温比較",
-        "actual_temp": "実際",
-        "feels_like": "体感",
-        "humidity": "💧 湿度",
-        "wind_speed": "🌬️ 風速",
-        "pressure": "🎯 気圧",
-        "visibility": "👁️ 視程",
-        "uv": "☀️ UV",
-        "precip": "🌧️ 降水量",
-        "weather_status": "📝 天気",
-        "sunrise": "🌅 日の出",
-        "sunset": "🌇 日の入り",
-        "moon_phase": "🌙 月",
-        "hourly_forecast": "⏰ 時間別予報",
-        "today_overview": "📊 今日の概要",
-        "temp_range": "気温範囲",
-        "dressing_advice": "👔 服装",
-        "week_forecast": "📅 7日間予報",
-        "temp_diff": "気温差",
-        "query_failed": "❌ データ取得失敗",
-        "query_tip": "💡 都市名を確認",
-        "no_city": "👆 都市を入力",
-        "footer": "🌈 スマート天気 | リアルタイム",
-        "version": "✨ デラックス v5.0 ✨",
-        "data_source": "データ: wttr.in",
-        "advice_cold": "❄️ 非常に寒い！ダウン、手袋",
-        "advice_cool": "🍂 寒い！コート、セーター",
-        "advice_mild": "🌸 涼しい！長袖、軽い上着",
-        "advice_warm": "☀️ 快適！半袖、シャツ",
-        "advice_hot": "🔥 暑い！半袖、短パン",
-        "tip_cold": "💡 防寒対策を",
-        "tip_hot": "💡 水分補給を",
-        "tip_warm": "💡 外活動に最適",
-        "tip_cool": "💡 上着を忘れずに",
-        "uv_low": "低い",
-        "uv_medium": "中程度",
-        "uv_high": "高い",
-        "uv_extreme": "非常に高い",
-        "moon_new": "🌑 新月",
-        "moon_waxing_crescent": "🌒 三日月",
-        "moon_first_quarter": "🌓 上弦",
-        "moon_waxing_gibbous": "🌔 十三夜",
-        "moon_full": "🌕 満月",
-        "moon_waning_gibbous": "🌖 十六夜",
-        "moon_third_quarter": "🌗 下弦",
-        "moon_waning_crescent": "🌘 有明月",
-        "moon_unknown": "🌙 不明",
-        "auto_refresh_on": "自動更新オン",
-        "air_quality": "💨 空気質",
-        "comfort_index": "😊 快適度",
     }
 }
 
@@ -311,7 +234,7 @@ def get_weather_emoji(desc):
     return "🌤️"
 
 
-# ==================== 天气翻译（修复中英文混杂）====================
+# ==================== 天气翻译 ====================
 def translate_weather(desc_en):
     weather_map = {
         "Sunny": "☀️ 晴朗", "Clear": "🌙 晴朗",
@@ -362,7 +285,7 @@ def get_weather_data(city):
         return None
 
 
-# ==================== 逐小时预报（修复时间格式 + 翻译）====================
+# ==================== 逐小时预报 ====================
 def get_hourly_forecast(data):
     def convert_time(time_str):
         try:
@@ -393,35 +316,29 @@ def get_hourly_forecast(data):
         return []
 
 
-# ==================== 穿衣建议（精美图标版）====================
+# ==================== 穿衣建议 ====================
 def get_dressing_advice(temp):
     if temp < 0:
         advice = t("advice_cold")
         tip = t("tip_cold")
         icon = "❄️☃️🧥🧣"
-        color = "#74B9FF"
     elif temp < 10:
         advice = t("advice_cool")
         tip = t("tip_cool")
         icon = "🍂🧥🍁"
-        color = "#52BE80"
     elif temp < 20:
         advice = t("advice_mild")
         tip = t("tip_cool")
         icon = "🌸👕🧥🍃"
-        color = "#F4D03F"
     elif temp < 30:
         advice = t("advice_warm")
         tip = t("tip_warm")
         icon = "☀️👕🩳😎"
-        color = "#F39C12"
     else:
         advice = t("advice_hot")
         tip = t("tip_hot")
         icon = "🔥🎽🍉💦"
-        color = "#E74C3C"
-
-    return advice, tip, icon, color
+    return advice, tip, icon
 
 
 # ==================== 导出报告 ====================
@@ -450,18 +367,10 @@ def export_weather_report(city, current, today):
 """
     return report
 
-ss
+
 # ==================== 应用主题色 ====================
 color1, color2 = get_current_colors()
-
-if st.session_state.theme_mode == 'dark':
-    card_bg = "rgba(30,30,50,0.95)"
-    text_color = "#eee"
-    sub_text_color = "#aaa"  # 添加这一行
-else:
-    card_bg = "rgba(255,255,255,0.95)"
-    text_color = "#333"
-    sub_text_color = "#888"  # 添加这一行
+sub_text_color = "#666" if st.session_state.theme_mode == 'light' else "#aaa"
 
 st.markdown(f"""
 <style>
@@ -481,8 +390,7 @@ st.markdown(f"""
         background: linear-gradient(135deg, {color1} 0%, {color2} 100%);
     }}
     .weather-card {{
-        background: {card_bg};
-        backdrop-filter: blur(5px);
+        background: rgba(255,255,255,0.92);
         border-radius: 25px;
         padding: 25px;
         margin: 15px 0;
@@ -556,10 +464,9 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"## {t('hot_cities')}")
-    hot_cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '武汉', '西安', '南京', '东京', '首尔',
-                  '伦敦', '纽约']
+    hot_cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '武汉', '西安', '南京']
     cols = st.columns(2)
-    for i, city_name in enumerate(hot_cities[:10]):
+    for i, city_name in enumerate(hot_cities):
         if cols[i % 2].button(city_name, key=f"btn_{city_name}", use_container_width=True):
             city = city_name
             if city not in st.session_state.search_history:
@@ -703,8 +610,14 @@ if city:
                         st.markdown(f"{current['visibility']} km")
                     with col_info3:
                         uv_val = int(current['uvIndex']) if str(current['uvIndex']).isdigit() else 0
-                        uv_text = t('uv_low') if uv_val <= 2 else t('uv_medium') if uv_val <= 5 else t(
-                            'uv_high') if uv_val <= 7 else t('uv_extreme')
+                        if uv_val <= 2:
+                            uv_text = t('uv_low')
+                        elif uv_val <= 5:
+                            uv_text = t('uv_medium')
+                        elif uv_val <= 7:
+                            uv_text = t('uv_high')
+                        else:
+                            uv_text = t('uv_extreme')
                         st.markdown(f"#### ☀️ {t('uv')}")
                         st.markdown(f'<p class="metric-value">{current["uvIndex"]}</p>', unsafe_allow_html=True)
                         st.caption(uv_text)
@@ -742,13 +655,17 @@ if city:
                     st.markdown(f"## 📊 {t('today_overview')}")
                     temp_min = int(today['mintempC'])
                     temp_max = int(today['maxtempC'])
-                    progress_val = (temp_current - temp_min) / max(1, (temp_max - temp_min))
+                    if temp_max > temp_min:
+                        progress_val = (temp_current - temp_min) / (temp_max - temp_min)
+                        progress_val = max(0, min(1, progress_val))
+                    else:
+                        progress_val = 0.5
                     st.progress(progress_val, text=f"{temp_min}°C  ←  {temp_current}°C  →  {temp_max}°C")
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     # 穿衣建议
                     st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-                    advice, tip, icon, color = get_dressing_advice(temp_current)
+                    advice, tip, icon = get_dressing_advice(temp_current)
                     st.markdown(f"""
                     <div style="text-align: center; padding: 15px;">
                         <div style="font-size: 55px; animation: float 2s ease-in-out infinite;">{icon}</div>
@@ -798,7 +715,7 @@ if city:
                         unsafe_allow_html=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
-                    # 7天预报
+                    # 5天预报
                     st.markdown('<div class="weather-card">', unsafe_allow_html=True)
                     st.markdown(f"## 📅 {t('week_forecast')}")
                     for i, day in enumerate(data['weather'][:5]):
@@ -812,8 +729,8 @@ if city:
                         temp_max = day['maxtempC']
                         temp_min = day['mintempC']
                         desc_day = translate_weather(day['hourly'][0]['weatherDesc'][0]['value'])
-                        icon = get_weather_emoji(day['hourly'][0]['weatherDesc'][0]['value'])
-                        with st.expander(f"{icon} {display_date} | {temp_min}°C~{temp_max}°C"):
+                        weather_icon = get_weather_emoji(day['hourly'][0]['weatherDesc'][0]['value'])
+                        with st.expander(f"{weather_icon} {display_date} | {temp_min}°C~{temp_max}°C"):
                             st.markdown(f"🌡️ {temp_min}°C → {temp_max}°C")
                             st.markdown(f"☁️ {desc_day}")
                             st.markdown(f"🌧️ 降水: {day['hourly'][0]['chanceofrain']}%")
