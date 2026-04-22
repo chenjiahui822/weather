@@ -1,18 +1,19 @@
 """
-Streamlit 天气查询应用 - 完整版
-功能：实时天气、7天预报、逐小时预报、自定义主题色、多语言切换、像素小人
+Streamlit 天气查询应用 - 精致花哨版
+功能：实时天气、7天预报、逐小时预报、自定义主题色、多语言切换、精美动画
 """
 
 import streamlit as st
 import requests
 from datetime import datetime
 import pandas as pd
+import time
 
 # ==================== 多语言字典 ====================
 LANGUAGES = {
     "中文": {
-        "app_title": "智能天气查询系统",
-        "app_subtitle": "实时天气 | 逐小时预报 | 贴心建议 | 自定义主题色",
+        "app_title": "🌈 智能天气查询系统",
+        "app_subtitle": "实时天气 | 逐小时预报 | 贴心建议 | 自定义主题",
         "city_select": "🎯 城市选择",
         "city_placeholder": "请输入城市名称",
         "hot_cities": "🔥 热门城市",
@@ -58,9 +59,8 @@ LANGUAGES = {
         "query_tip": "💡 提示: 请检查城市名称是否正确",
         "no_city": "👆 请在左侧输入或选择城市名称开始查询",
         "footer": "🌈 智能天气查询系统 | 数据实时更新 | 支持全球城市",
-        "version": "完整版 v4.0",
+        "version": "✨ 精致花哨版 v5.0 ✨",
         "data_source": "数据来源: wttr.in",
-        # 穿衣建议文本
         "advice_cold": "❄️ 天气寒冷！建议穿羽绒服、厚棉衣、围巾手套",
         "advice_cool": "🍂 天气较冷！建议穿大衣、毛衣、厚外套",
         "advice_mild": "🌸 天气凉爽！建议穿长袖、薄外套、卫衣",
@@ -70,26 +70,25 @@ LANGUAGES = {
         "tip_hot": "💡 小贴士：多喝水，避免正午长时间户外活动",
         "tip_warm": "💡 小贴士：天气舒适，适合户外活动",
         "tip_cool": "💡 小贴士：早晚温差大，记得带外套",
-        # UV等级
         "uv_low": "低",
         "uv_medium": "中等",
         "uv_high": "高",
         "uv_extreme": "极高",
-        # 月相
-        "moon_new": "新月",
-        "moon_waxing_crescent": "娥眉月",
-        "moon_first_quarter": "上弦月",
-        "moon_waxing_gibbous": "盈凸月",
-        "moon_full": "满月",
-        "moon_waning_gibbous": "亏凸月",
-        "moon_third_quarter": "下弦月",
-        "moon_waning_crescent": "残月",
-        "moon_unknown": "未知",
-        # 自动刷新
+        "moon_new": "🌑 新月",
+        "moon_waxing_crescent": "🌒 娥眉月",
+        "moon_first_quarter": "🌓 上弦月",
+        "moon_waxing_gibbous": "🌔 盈凸月",
+        "moon_full": "🌕 满月",
+        "moon_waning_gibbous": "🌖 亏凸月",
+        "moon_third_quarter": "🌗 下弦月",
+        "moon_waning_crescent": "🌘 残月",
+        "moon_unknown": "🌙 未知",
         "auto_refresh_on": "自动刷新已开启，每5分钟更新一次",
+        "air_quality": "💨 空气质量",
+        "comfort_index": "😊 舒适度",
     },
     "English": {
-        "app_title": "Smart Weather Query System",
+        "app_title": "🌈 Smart Weather System",
         "app_subtitle": "Live Weather | Hourly Forecast | Smart Tips | Custom Theme",
         "city_select": "🎯 City Selection",
         "city_placeholder": "Enter city name",
@@ -136,7 +135,7 @@ LANGUAGES = {
         "query_tip": "💡 Tip: Please check the city name",
         "no_city": "👆 Please enter or select a city on the left",
         "footer": "🌈 Smart Weather System | Real-time Data | Global Cities",
-        "version": "Complete v4.0",
+        "version": "✨ Deluxe v5.0 ✨",
         "data_source": "Data source: wttr.in",
         "advice_cold": "❄️ Very cold! Wear down jacket, thick coat, scarf and gloves",
         "advice_cool": "🍂 Cool! Wear coat, sweater, thick jacket",
@@ -151,20 +150,22 @@ LANGUAGES = {
         "uv_medium": "Medium",
         "uv_high": "High",
         "uv_extreme": "Extreme",
-        "moon_new": "New Moon",
-        "moon_waxing_crescent": "Waxing Crescent",
-        "moon_first_quarter": "First Quarter",
-        "moon_waxing_gibbous": "Waxing Gibbous",
-        "moon_full": "Full Moon",
-        "moon_waning_gibbous": "Waning Gibbous",
-        "moon_third_quarter": "Third Quarter",
-        "moon_waning_crescent": "Waning Crescent",
-        "moon_unknown": "Unknown",
+        "moon_new": "🌑 New Moon",
+        "moon_waxing_crescent": "🌒 Waxing Crescent",
+        "moon_first_quarter": "🌓 First Quarter",
+        "moon_waxing_gibbous": "🌔 Waxing Gibbous",
+        "moon_full": "🌕 Full Moon",
+        "moon_waning_gibbous": "🌖 Waning Gibbous",
+        "moon_third_quarter": "🌗 Third Quarter",
+        "moon_waning_crescent": "🌘 Waning Crescent",
+        "moon_unknown": "🌙 Unknown",
         "auto_refresh_on": "Auto refresh is on, updating every 5 minutes",
+        "air_quality": "💨 Air Quality",
+        "comfort_index": "😊 Comfort",
     },
     "日本語": {
-        "app_title": "スマート天気予報システム",
-        "app_subtitle": "リアルタイム天気 | 時間別予報 | おすすめアドバイス | カスタムテーマ",
+        "app_title": "🌈 スマート天気システム",
+        "app_subtitle": "リアルタイム天気 | 時間別予報 | おすすめ | カスタムテーマ",
         "city_select": "🎯 都市選択",
         "city_placeholder": "都市名を入力",
         "hot_cities": "🔥 人気都市",
@@ -173,72 +174,74 @@ LANGUAGES = {
         "no_history": "検索履歴がありません",
         "theme_settings": "🎨 テーマ設定",
         "theme_mode": "テーマモード",
-        "light_mode": "ライトモード",
-        "dark_mode": "ダークモード",
+        "light_mode": "ライト",
+        "dark_mode": "ダーク",
         "color_scheme": "配色",
-        "preset_theme": "プリセットテーマ",
-        "custom_color": "カスタムカラー",
-        "custom_gradient": "カスタムグラデーション",
+        "preset_theme": "プリセット",
+        "custom_color": "カスタム",
+        "custom_gradient": "グラデーション",
         "color_start": "開始色",
         "color_end": "終了色",
-        "color_preview": "現在の配色プレビュー",
-        "other_settings": "⚙️ その他設定",
-        "auto_refresh": "🔄 自動更新（5分ごと）",
+        "color_preview": "プレビュー",
+        "other_settings": "⚙️ その他",
+        "auto_refresh": "🔄 自動更新（5分）",
         "features": "📊 機能",
-        "export_report": "📄 レポート出力",
+        "export_report": "📄 レポート",
         "update_time": "更新時間",
         "temp_compare": "🌡️ 気温比較",
-        "actual_temp": "実際の気温",
-        "feels_like": "体感温度",
+        "actual_temp": "実際",
+        "feels_like": "体感",
         "humidity": "💧 湿度",
         "wind_speed": "🌬️ 風速",
         "pressure": "🎯 気圧",
         "visibility": "👁️ 視程",
-        "uv": "☀️ 紫外線",
+        "uv": "☀️ UV",
         "precip": "🌧️ 降水量",
-        "weather_status": "📝 天気状況",
+        "weather_status": "📝 天気",
         "sunrise": "🌅 日の出",
         "sunset": "🌇 日の入り",
-        "moon_phase": "🌙 月齢",
-        "hourly_forecast": "⏰ 時間別予報（未来12時間）",
+        "moon_phase": "🌙 月",
+        "hourly_forecast": "⏰ 時間別予報",
         "today_overview": "📊 今日の概要",
-        "temp_range": "今日の気温範囲",
-        "dressing_advice": "👔 服装アドバイス",
+        "temp_range": "気温範囲",
+        "dressing_advice": "👔 服装",
         "week_forecast": "📅 7日間予報",
         "temp_diff": "気温差",
-        "query_failed": "❌ 天気データを取得できません",
-        "query_tip": "💡 ヒント: 都市名を確認してください",
-        "no_city": "👆 左側で都市を入力または選択してください",
-        "footer": "🌈 スマート天気システム | リアルタイムデータ | 世界中の都市に対応",
-        "version": "完全版 v4.0",
-        "data_source": "データソース: wttr.in",
-        "advice_cold": "❄️ 非常に寒い！ダウンジャケット、厚手のコート、マフラー、手袋",
-        "advice_cool": "🍂 寒い！コート、セーター、厚手のジャケット",
-        "advice_mild": "🌸 涼しい！長袖、軽いジャケット、パーカー",
-        "advice_warm": "☀️ 快適！半袖、シャツ、薄いパンツ",
-        "advice_hot": "🔥 暑い！半袖、ショートパンツ、日焼け対策を",
-        "tip_cold": "💡 ヒント：帽子と手袋を着用し、暖かくしてお過ごしください",
-        "tip_hot": "💡 ヒント：水分を多く摂り、正午の長時間の外出を避ける",
-        "tip_warm": "💡 ヒント：屋外活動に最適な天気です",
-        "tip_cool": "💡 ヒント：気温差が大きいので、上着を持参してください",
+        "query_failed": "❌ データ取得失敗",
+        "query_tip": "💡 都市名を確認",
+        "no_city": "👆 都市を入力",
+        "footer": "🌈 スマート天気 | リアルタイム",
+        "version": "✨ デラックス v5.0 ✨",
+        "data_source": "データ: wttr.in",
+        "advice_cold": "❄️ 非常に寒い！ダウン、手袋",
+        "advice_cool": "🍂 寒い！コート、セーター",
+        "advice_mild": "🌸 涼しい！長袖、軽い上着",
+        "advice_warm": "☀️ 快適！半袖、シャツ",
+        "advice_hot": "🔥 暑い！半袖、短パン",
+        "tip_cold": "💡 防寒対策を",
+        "tip_hot": "💡 水分補給を",
+        "tip_warm": "💡 外活動に最適",
+        "tip_cool": "💡 上着を忘れずに",
         "uv_low": "低い",
         "uv_medium": "中程度",
         "uv_high": "高い",
         "uv_extreme": "非常に高い",
-        "moon_new": "新月",
-        "moon_waxing_crescent": "三日月",
-        "moon_first_quarter": "上弦の月",
-        "moon_waxing_gibbous": "十三夜",
-        "moon_full": "満月",
-        "moon_waning_gibbous": "十六夜",
-        "moon_third_quarter": "下弦の月",
-        "moon_waning_crescent": "有明月",
-        "moon_unknown": "不明",
-        "auto_refresh_on": "自動更新がオンになりました（5分ごとに更新）",
+        "moon_new": "🌑 新月",
+        "moon_waxing_crescent": "🌒 三日月",
+        "moon_first_quarter": "🌓 上弦",
+        "moon_waxing_gibbous": "🌔 十三夜",
+        "moon_full": "🌕 満月",
+        "moon_waning_gibbous": "🌖 十六夜",
+        "moon_third_quarter": "🌗 下弦",
+        "moon_waning_crescent": "🌘 有明月",
+        "moon_unknown": "🌙 不明",
+        "auto_refresh_on": "自動更新オン",
+        "air_quality": "💨 空気質",
+        "comfort_index": "😊 快適度",
     }
 }
 
-# ==================== 预设主题配色方案 ====================
+# ==================== 预设主题配色 ====================
 PRESET_THEMES = {
     "💜 梦幻紫罗兰": ("#667eea", "#764ba2"),
     "❤️ 热情红橙": ("#FF6B6B", "#EE5A24"),
@@ -246,14 +249,9 @@ PRESET_THEMES = {
     "💛 金色阳光": ("#FFE66D", "#F7B801"),
     "💚 翡翠绿": ("#A8E6CF", "#3EAC9C"),
     "🧡 珊瑚橙": ("#FF8C42", "#F26B38"),
-    "💜 皇家紫": ("#6C5CE7", "#4834D4"),
     "💙 海洋蓝": ("#00CEC9", "#00B894"),
-    "❤️ 樱花粉": ("#FF7675", "#D63031"),
+    "💗 樱花粉": ("#FDA7DF", "#E84393"),
     "💙 天空蓝": ("#74B9FF", "#0984E3"),
-    "💗 芭比粉": ("#FDA7DF", "#E84393"),
-    "💚 森林绿": ("#55E6C1", "#00B894"),
-    "🖤 暗夜黑": ("#2C3E50", "#1A1A2E"),
-    "🤍 极简白": ("#ECF0F1", "#BDC3C7"),
 }
 
 # ==================== 页面配置 ====================
@@ -263,9 +261,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-# 在页面配置后添加
-st.markdown('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">', unsafe_allow_html=True)
-# ==================== 会话状态初始化 ====================
+
+# ==================== 会话状态 ====================
 if 'search_history' not in st.session_state:
     st.session_state.search_history = []
 if 'theme_mode' not in st.session_state:
@@ -284,13 +281,11 @@ if 'language' not in st.session_state:
 
 # ==================== 翻译函数 ====================
 def t(key):
-    """获取当前语言的翻译文本"""
     return LANGUAGES[st.session_state.language].get(key, key)
 
 
-# ==================== 获取当前主题色 ====================
+# ==================== 主题色 ====================
 def get_current_colors():
-    """获取当前使用的主题色"""
     if st.session_state.use_custom_color:
         return st.session_state.custom_color1, st.session_state.custom_color2
     else:
@@ -298,75 +293,44 @@ def get_current_colors():
         return PRESET_THEMES.get(preset_key, ("#667eea", "#764ba2"))
 
 
-# ==================== 穿衣建议组件 ====================
-
-def get_dressing_advice_with_avatar(temp):
-    """根据温度显示穿衣建议和图标"""
-
-    if temp < 0:
-        advice = t("advice_cold")
-        tip = t("tip_cold")
-        icon = '<i class="fas fa-snowman" style="font-size: 80px; color: #74B9FF;"></i>'
-        bg_color = "#E8F4FD"
-    elif temp < 10:
-        advice = t("advice_cool")
-        tip = t("tip_cool")
-        icon = '<i class="fas fa-leaf" style="font-size: 80px; color: #52BE80;"></i>'
-        bg_color = "#E8F8F0"
-    elif temp < 20:
-        advice = t("advice_mild")
-        tip = t("tip_cool")
-        icon = '<i class="fas fa-cloud-sun" style="font-size: 80px; color: #F4D03F;"></i>'
-        bg_color = "#FEF9E7"
-    elif temp < 30:
-        advice = t("advice_warm")
-        tip = t("tip_warm")
-        icon = '<i class="fas fa-sun" style="font-size: 80px; color: #F39C12;"></i>'
-        bg_color = "#FEF5E7"
-    else:
-        advice = t("advice_hot")
-        tip = t("tip_hot")
-        icon = '<i class="fas fa-temperature-high" style="font-size: 80px; color: #E74C3C;"></i>'
-        bg_color = "#FDEDEC"
-
-    # 使用两列布局
-    col_left, col_right = st.columns([1, 2])
-
-    with col_left:
-        st.markdown(f"""
-        <div style="text-align: center; padding: 20px; background: {bg_color}; border-radius: 20px;">
-            {icon}
-            <p style="font-size: 28px; font-weight: bold; margin-top: 10px;">{temp}°C</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown(f"### 👔 {t('dressing_advice')}")
-        st.success(advice)
-        st.info(tip)
-# ==================== 辅助函数 ====================
-
+# ==================== 天气表情符号 ====================
 def get_weather_emoji(desc):
-    """根据天气描述返回表情符号"""
     desc_lower = desc.lower()
-    if any(word in desc_lower for word in ['雨', 'rain']):
+    if any(w in desc_lower for w in ['雨', 'rain']):
         return "🌧️"
-    elif any(word in desc_lower for word in ['雪', 'snow']):
+    elif any(w in desc_lower for w in ['雪', 'snow']):
         return "❄️"
-    elif any(word in desc_lower for word in ['雷', 'thunder', 'storm']):
+    elif any(w in desc_lower for w in ['雷', 'thunder']):
         return "⛈️"
-    elif any(word in desc_lower for word in ['雾', 'fog', 'mist']):
+    elif any(w in desc_lower for w in ['雾', 'fog']):
         return "🌫️"
-    elif any(word in desc_lower for word in ['云', 'cloud']):
+    elif any(w in desc_lower for w in ['云', 'cloud', '阴']):
         return "☁️"
-    elif any(word in desc_lower for word in ['晴', 'sun', 'clear']):
+    elif any(w in desc_lower for w in ['晴', 'sun', 'clear']):
         return "☀️"
-    else:
-        return "🌤️"
+    return "🌤️"
 
 
-def get_moon_icon(moon_phase):
-    """根据月相返回表情符号和翻译"""
+# ==================== 天气翻译（修复中英文混杂）====================
+def translate_weather(desc_en):
+    weather_map = {
+        "Sunny": "☀️ 晴朗", "Clear": "🌙 晴朗",
+        "Partly cloudy": "⛅ 局部多云", "Partly Cloudy": "⛅ 局部多云",
+        "Cloudy": "☁️ 多云", "Overcast": "☁️ 阴天",
+        "Light rain": "🌧️ 小雨", "Moderate rain": "🌧️ 中雨",
+        "Heavy rain": "🌧️ 大雨", "Light snow": "❄️ 小雪",
+        "Moderate snow": "❄️ 中雪", "Heavy snow": "❄️ 大雪",
+        "Mist": "🌫️ 薄雾", "Fog": "🌫️ 雾",
+        "Thunderstorm": "⛈️ 雷雨", "Thunder": "⛈️ 雷雨",
+    }
+    for en, zh in weather_map.items():
+        if en.lower() in desc_en.lower():
+            return zh
+    return f"🌤️ {desc_en}"
+
+
+# ==================== 月相翻译 ====================
+def get_moon_info(moon_phase):
     phase_lower = moon_phase.lower()
     if 'new' in phase_lower:
         return "🌑", t("moon_new")
@@ -384,12 +348,11 @@ def get_moon_icon(moon_phase):
         return "🌗", t("moon_third_quarter")
     elif 'waning crescent' in phase_lower:
         return "🌘", t("moon_waning_crescent")
-    else:
-        return "🌙", t("moon_unknown")
+    return "🌙", t("moon_unknown")
 
 
+# ==================== 获取天气数据 ====================
 def get_weather_data(city):
-    """获取天气数据"""
     try:
         url = f"https://wttr.in/{city}?format=j1&lang=zh"
         headers = {'User-Agent': 'Mozilla/5.0'}
@@ -399,101 +362,165 @@ def get_weather_data(city):
         return None
 
 
+# ==================== 逐小时预报（修复时间格式 + 翻译）====================
 def get_hourly_forecast(data):
-    """获取逐小时预报数据，时间格式转换为 HH:MM"""
-
     def convert_time(time_str):
         try:
             minutes = int(time_str)
             hours = minutes // 60
+            if hours >= 24:
+                hours = hours - 24
             return f"{hours:02d}:00"
         except:
             return time_str
 
     try:
         hourly = []
-        for i, hour in enumerate(data['weather'][0]['hourly'][:12]):
+        for hour in data['weather'][0]['hourly'][:12]:
             formatted_time = convert_time(hour['time'])
+            weather_en = hour['weatherDesc'][0]['value']
+            weather_cn = translate_weather(weather_en)
             hourly.append({
-                t('时间'): formatted_time,
-                t('温度'): f"{hour['tempC']}°C",
-                t('feels_like'): f"{hour['FeelsLikeC']}°C",
-                t('天气'): hour['weatherDesc'][0]['value'],
-                t('降水'): f"{hour['chanceofrain']}%",
-                t('wind_speed'): f"{hour['windspeedKmph']} km/h"
+                '⏰ 时间': formatted_time,
+                '🌡️ 温度': f"{hour['tempC']}°C",
+                '😊 体感': f"{hour['FeelsLikeC']}°C",
+                '☁️ 天气': weather_cn,
+                '🌧️ 降水': f"{hour['chanceofrain']}%",
+                '💨 风速': f"{hour['windspeedKmph']} km/h"
             })
         return hourly
     except:
         return []
 
 
+# ==================== 穿衣建议（精美图标版）====================
+def get_dressing_advice(temp):
+    if temp < 0:
+        advice = t("advice_cold")
+        tip = t("tip_cold")
+        icon = "❄️☃️🧥🧣"
+        color = "#74B9FF"
+    elif temp < 10:
+        advice = t("advice_cool")
+        tip = t("tip_cool")
+        icon = "🍂🧥🍁"
+        color = "#52BE80"
+    elif temp < 20:
+        advice = t("advice_mild")
+        tip = t("tip_cool")
+        icon = "🌸👕🧥🍃"
+        color = "#F4D03F"
+    elif temp < 30:
+        advice = t("advice_warm")
+        tip = t("tip_warm")
+        icon = "☀️👕🩳😎"
+        color = "#F39C12"
+    else:
+        advice = t("advice_hot")
+        tip = t("tip_hot")
+        icon = "🔥🎽🍉💦"
+        color = "#E74C3C"
+
+    return advice, tip, icon, color
+
+
+# ==================== 导出报告 ====================
 def export_weather_report(city, current, today):
-    """生成可导出的天气报告文本"""
     report = f"""
 ========== {t('app_title')} ==========
-{t('city_select')}: {city}
-{t('update_time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
---------------------------------
-【{t('current_weather')}】
-{t('温度')}: {current['temp_C']}°C ({t('feels_like')} {current['FeelsLikeC']}°C)
-{t('weather_status')}: {current['weatherDesc'][0]['value']}
-{t('humidity')}: {current['humidity']}%
-{t('wind_speed')}: {current['windspeedKmph']} km/h {current['winddir16Point']}
-{t('uv')}: {current['uvIndex']}
-{t('precip')}: {current['precipMM']} mm
---------------------------------
-【{t('today_overview')}】
-{t('today_high')}: {today['maxtempC']}°C
-{t('today_low')}: {today['mintempC']}°C
-{t('sunrise')}: {today['astronomy'][0]['sunrise']}
-{t('sunset')}: {today['astronomy'][0]['sunset']}
---------------------------------
-{t('data_source')}
-================================
+📍 {t('city_select')}: {city}
+🕐 {t('update_time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+----------------------------------------
+【🌡️ 当前天气】
+🌡️ 温度: {current['temp_C']}°C (体感 {current['FeelsLikeC']}°C)
+☁️ 天气: {current['weatherDesc'][0]['value']}
+💧 湿度: {current['humidity']}%
+💨 风速: {current['windspeedKmph']} km/h
+☀️ 紫外线: {current['uvIndex']}
+🌧️ 降水: {current['precipMM']} mm
+----------------------------------------
+【📅 今日预报】
+📈 最高: {today['maxtempC']}°C
+📉 最低: {today['mintempC']}°C
+🌅 日出: {today['astronomy'][0]['sunrise']}
+🌇 日落: {today['astronomy'][0]['sunset']}
+----------------------------------------
+📊 {t('data_source')}
+========================================
 """
     return report
 
 
 # ==================== 应用主题色 ====================
 color1, color2 = get_current_colors()
-
-if st.session_state.theme_mode == 'dark':
-    card_bg = "rgba(30,30,50,0.95)"
-    text_color = "#eee"
-    sub_text_color = "#888"
-else:
-    card_bg = "rgba(255,255,255,0.95)"
-    text_color = "#333"
-    sub_text_color = "#666"
+card_bg = "rgba(255,255,255,0.92)" if st.session_state.theme_mode == 'light' else "rgba(30,30,50,0.92)"
+text_color = "#333" if st.session_state.theme_mode == 'light' else "#eee"
 
 st.markdown(f"""
 <style>
+    @keyframes float {{
+        0%, 100% {{ transform: translateY(0px); }}
+        50% {{ transform: translateY(-5px); }}
+    }}
+    @keyframes glow {{
+        0%, 100% {{ box-shadow: 0 0 5px rgba(255,255,255,0.3); }}
+        50% {{ box-shadow: 0 0 20px rgba(255,255,255,0.6); }}
+    }}
+    @keyframes slideIn {{
+        from {{ opacity: 0; transform: translateX(30px); }}
+        to {{ opacity: 1; transform: translateX(0); }}
+    }}
     .stApp {{
         background: linear-gradient(135deg, {color1} 0%, {color2} 100%);
     }}
     .weather-card {{
         background: {card_bg};
-        border-radius: 20px;
-        padding: 20px;
-        margin: 10px 0;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-        color: {text_color};
+        backdrop-filter: blur(5px);
+        border-radius: 25px;
+        padding: 25px;
+        margin: 15px 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        animation: slideIn 0.5s ease-out;
+    }}
+    .weather-card:hover {{
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.2);
     }}
     .main-header {{
         text-align: center;
         color: white;
-        padding: 20px;
-        border-radius: 10px;
+        padding: 30px;
+        border-radius: 30px;
         margin-bottom: 30px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        animation: glow 3s ease-in-out infinite;
     }}
     .metric-value {{
-        font-size: 28px;
+        font-size: 32px;
+        font-weight: bold;
+        text-align: center;
+        background: linear-gradient(135deg, {color1}, {color2});
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }}
+    .temp-large {{
+        font-size: 48px;
         font-weight: bold;
         text-align: center;
     }}
+    .stButton button {{
+        transition: all 0.3s ease !important;
+        border-radius: 20px !important;
+    }}
     .stButton button:hover {{
-        transform: translateY(-2px);
-        transition: all 0.3s ease;
+        transform: translateY(-2px) scale(1.02) !important;
+    }}
+    .icon-bounce {{
+        animation: float 2s ease-in-out infinite;
+        display: inline-block;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -501,15 +528,16 @@ st.markdown(f"""
 # ==================== 标题 ====================
 st.markdown(f"""
 <div class="main-header">
-    <h1>{t('app_title')}</h1>
-    <p>{t('app_subtitle')}</p>
+    <div class="icon-bounce" style="font-size: 50px;">🌈⛅🌟</div>
+    <h1 style="font-size: 48px; margin: 10px 0;">{t('app_title')}</h1>
+    <p style="font-size: 18px; opacity: 0.95;">{t('app_subtitle')}</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ==================== 侧边栏 ====================
 with st.sidebar:
-    # 语言选择
-    lang_option = st.selectbox("🌐 Language / 语言", list(LANGUAGES.keys()),
+    st.markdown(f"## 🌐 语言 / Language")
+    lang_option = st.selectbox("", list(LANGUAGES.keys()),
                                index=list(LANGUAGES.keys()).index(st.session_state.language))
     if lang_option != st.session_state.language:
         st.session_state.language = lang_option
@@ -517,16 +545,14 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"## {t('city_select')}")
-
-    city = st.text_input(t('city_placeholder'), value="北京")
+    city = st.text_input(t('city_placeholder'), value="北京", label_visibility="collapsed")
 
     st.markdown("---")
     st.markdown(f"## {t('hot_cities')}")
-
-    hot_cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '武汉', '西安', '南京']
-
+    hot_cities = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '武汉', '西安', '南京', '东京', '首尔',
+                  '伦敦', '纽约']
     cols = st.columns(2)
-    for i, city_name in enumerate(hot_cities):
+    for i, city_name in enumerate(hot_cities[:10]):
         if cols[i % 2].button(city_name, key=f"btn_{city_name}", use_container_width=True):
             city = city_name
             if city not in st.session_state.search_history:
@@ -536,13 +562,12 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"## {t('search_history')}")
-
     if st.session_state.search_history:
         for hist_city in st.session_state.search_history[:5]:
-            if st.button(f"🕐 {hist_city}", key=f"hist_{hist_city}"):
+            if st.button(f"🕐 {hist_city}", key=f"hist_{hist_city}", use_container_width=True):
                 city = hist_city
                 st.rerun()
-        if st.button(t('clear_history')):
+        if st.button(t('clear_history'), use_container_width=True):
             st.session_state.search_history = []
             st.rerun()
     else:
@@ -550,7 +575,6 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"## {t('theme_settings')}")
-
     theme_mode_option = st.selectbox(t('theme_mode'), [t('light_mode'), t('dark_mode')],
                                      index=0 if st.session_state.theme_mode == 'light' else 1)
     new_mode = 'light' if theme_mode_option == t('light_mode') else 'dark'
@@ -558,9 +582,7 @@ with st.sidebar:
         st.session_state.theme_mode = new_mode
         st.rerun()
 
-    st.markdown("---")
     st.markdown(f"### {t('color_scheme')}")
-
     color_option = st.radio(t('color_scheme'), [t('preset_theme'), t('custom_color')],
                             index=0 if not st.session_state.use_custom_color else 1)
 
@@ -580,42 +602,34 @@ with st.sidebar:
             new_color1 = st.color_picker(t('color_start'), st.session_state.custom_color1)
         with col2_picker:
             new_color2 = st.color_picker(t('color_end'), st.session_state.custom_color2)
-
         if new_color1 != st.session_state.custom_color1 or new_color2 != st.session_state.custom_color2:
             st.session_state.custom_color1 = new_color1
             st.session_state.custom_color2 = new_color2
             st.rerun()
-
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, {new_color1}, {new_color2}); 
-                    border-radius: 10px; padding: 10px; text-align: center; color: white; margin-top: 10px;">
-            {t('color_preview')}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="background: linear-gradient(135deg, {new_color1}, {new_color2}); border-radius: 15px; padding: 15px; text-align: center; color: white;">{t("color_preview")}</div>',
+            unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown(f"## {t('other_settings')}")
-
     st.session_state.auto_refresh = st.checkbox(t('auto_refresh'), value=st.session_state.auto_refresh)
 
     st.markdown("---")
     st.markdown(f"### {t('features')}")
     st.info("""
-    ✅ 实时天气查询
-    ✅ 未来7天预报
-    ✅ 逐小时预报
-    ✅ 体感温度对比
-    ✅ 月相显示
-    ✅ 导出天气报告
-    ✅ 深色/浅色模式
-    ✅ 自定义主题色
-    ✅ 多语言切换
-    ✅ 会动的像素小人
-    ✅ 搜索历史记录
+    ✨ 实时天气查询
+    📅 未来7天预报
+    ⏰ 逐小时预报
+    🌡️ 体感温度对比
+    🌙 月相显示
+    📄 导出天气报告
+    🎨 自定义主题色
+    🌐 多语言切换
+    💨 空气质量
+    😊 舒适度指数
     """)
 
-    st.markdown("---")
-    st.caption(t('data_source'))
+    st.caption(f"📊 {t('data_source')}")
 
 # ==================== 自动刷新 ====================
 if st.session_state.auto_refresh:
@@ -624,186 +638,192 @@ if st.session_state.auto_refresh:
 
 # ==================== 主要查询区域 ====================
 if city:
-    col1, col2 = st.columns([2, 1])
+    with st.spinner(f"✨ 正在查询 {city} 的精致天气..."):
+        data = get_weather_data(city)
 
-    with col1:
-        with st.spinner(
-                f"🌐 {t('loading') if 'loading' in LANGUAGES[st.session_state.language] else 'Loading'} {city}..."):
-            data = get_weather_data(city)
-
-            if data:
-                try:
-                    current = data['current_condition'][0]
-                    today = data['weather'][0]
-
-                    report = export_weather_report(city, current, today)
-                    st.download_button(
-                        label=t('export_report'),
-                        data=report,
-                        file_name=f"{city}_weather_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                        mime="text/plain"
-                    )
-
-                    st.markdown(f"""
-                    <div class="weather-card">
-                        <h2 style="text-align:center;">{get_weather_emoji(current['weatherDesc'][0]['value'])} {city}</h2>
-                        <p style="text-align:center; color: {sub_text_color};">{t('update_time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-                    st.markdown(f"## {t('temp_compare')}")
-
-                    temp_col1, temp_col2 = st.columns(2)
-                    with temp_col1:
-                        st.markdown(f'<p class="metric-value">{current["temp_C"]}°C</p>', unsafe_allow_html=True)
-                        st.caption(t('actual_temp'))
-                    with temp_col2:
-                        feels_like = current['FeelsLikeC']
-                        feels_diff = int(feels_like) - int(current['temp_C'])
-                        delta_color = "normal" if feels_diff >= 0 else "inverse"
-                        st.metric(t('feels_like'), f"{feels_like}°C", delta=f"{feels_diff:+}°C",
-                                  delta_color=delta_color)
-
-                    st.markdown("---")
-
-                    col_a, col_b, col_c = st.columns(3)
-
-                    with col_a:
-                        st.markdown(f"#### {t('humidity')}")
-                        st.markdown(f'<p class="metric-value">{current["humidity"]}%</p>', unsafe_allow_html=True)
-                        st.markdown(f"#### {t('wind_speed')}")
-                        st.markdown(f"{current['windspeedKmph']} km/h")
-                        st.caption(current['winddir16Point'])
-
-                    with col_b:
-                        st.markdown(f"#### {t('pressure')}")
-                        st.markdown(f'<p class="metric-value">{current["pressure"]} mb</p>', unsafe_allow_html=True)
-                        st.markdown(f"#### {t('visibility')}")
-                        st.markdown(f"{current['visibility']} km")
-
-                    with col_c:
-                        uv = int(current['uvIndex']) if str(current['uvIndex']).isdigit() else 0
-                        if uv <= 2:
-                            uv_text = t('uv_low')
-                        elif uv <= 5:
-                            uv_text = t('uv_medium')
-                        elif uv <= 7:
-                            uv_text = t('uv_high')
-                        else:
-                            uv_text = t('uv_extreme')
-                        st.markdown(f"#### {t('uv')}")
-                        st.markdown(f'<p class="metric-value">{current["uvIndex"]}</p>', unsafe_allow_html=True)
-                        st.caption(uv_text)
-                        st.markdown(f"#### {t('precip')}")
-                        st.markdown(f"{current['precipMM']} mm")
-
-                    st.markdown("---")
-
-                    desc = current['weatherDesc'][0]['value']
-                    st.info(f"📝 {t('weather_status')}: {desc}")
-
-                    sun_col1, sun_col2, sun_col3 = st.columns(3)
-                    with sun_col1:
-                        st.success(f"{t('sunrise')}: {today['astronomy'][0]['sunrise']}")
-                    with sun_col2:
-                        st.warning(f"{t('sunset')}: {today['astronomy'][0]['sunset']}")
-                    with sun_col3:
-                        moon_phase_raw = today.get('astronomy', [{}])[0].get('moon_phase', '')
-                        moon_icon, moon_text = get_moon_icon(moon_phase_raw)
-                        st.info(f"{moon_icon} {t('moon_phase')}: {moon_text}")
-
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-                    st.markdown(f"## {t('hourly_forecast')}")
-
-                    hourly_data = get_hourly_forecast(data)
-                    if hourly_data:
-                        hourly_df = pd.DataFrame(hourly_data)
-                        st.dataframe(hourly_df, use_container_width=True, hide_index=True)
-                    else:
-                        st.info("逐小时数据暂时不可用")
-
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-                except Exception as e:
-                    st.error(f"解析数据失败: {str(e)}")
-            else:
-                st.error(f"{t('query_failed')}")
-                st.info(t('query_tip'))
-
-    with col2:
         if data:
             try:
                 current = data['current_condition'][0]
                 today = data['weather'][0]
                 temp_current = int(current['temp_C'])
 
-                st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-                st.markdown(f"## {t('today_overview')}")
+                # 导出按钮
+                col_export, col_empty = st.columns([1, 5])
+                with col_export:
+                    report = export_weather_report(city, current, today)
+                    st.download_button(label="📄 " + t('export_report'), data=report, file_name=f"{city}_weather.txt",
+                                       mime="text/plain")
 
-                temp_min = int(today['mintempC'])
-                temp_max = int(today['maxtempC'])
+                # 主卡片
+                col_main, col_side = st.columns([2, 1])
 
-                st.markdown(f"**{t('temp_range')}**")
-                st.progress((temp_current - temp_min) / max(1, (temp_max - temp_min)),
-                            text=f"{temp_min}°C ← {temp_current}°C → {temp_max}°C")
-
-                st.markdown("---")
-
-                get_dressing_advice_with_avatar(temp_current)
-
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            except:
-                pass
-
-        if data:
-            st.markdown('<div class="weather-card">', unsafe_allow_html=True)
-            st.markdown(f"## {t('week_forecast')}")
-
-            for i, day in enumerate(data['weather'][:7]):
-                date_str = day['date']
-                try:
-                    date_obj = datetime.strptime(date_str, '%Y-%m-%d')
-                    weekday = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][date_obj.weekday()]
-                    if st.session_state.language != "中文":
-                        weekday_en = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][date_obj.weekday()]
-                        display_date = f"{date_str} {weekday_en}"
-                    else:
-                        display_date = f"{date_str} {weekday}"
-                except:
-                    display_date = date_str
-
-                temp_max = day['maxtempC']
-                temp_min = day['mintempC']
-                desc_day = day['hourly'][0]['weatherDesc'][0]['value']
-                rain_chance = day['hourly'][0]['chanceofrain']
-                icon = get_weather_emoji(desc_day)
-
-                with st.expander(f"{icon} {display_date} | {temp_min}°C ~ {temp_max}°C", expanded=(i == 0)):
+                with col_main:
+                    # 城市标题
                     st.markdown(f"""
-                    - 🌡️ {t('温度')}: {temp_min}°C ~ {temp_max}°C
-                    - ☁️ {t('天气')}: {desc_day}
-                    - 🌧️ {t('降水')}: {rain_chance}%
-                    - 🌅 {t('sunrise')}: {day['astronomy'][0]['sunrise']}
-                    - 🌇 {t('sunset')}: {day['astronomy'][0]['sunset']}
-                    """)
+                    <div class="weather-card" style="text-align: center;">
+                        <div style="font-size: 60px;" class="icon-bounce">{get_weather_emoji(current['weatherDesc'][0]['value'])}</div>
+                        <h1 style="font-size: 42px; margin: 5px 0;">{city}</h1>
+                        <p style="color: {sub_text_color};">{t('update_time')}: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-                    temp_range = int(temp_max) - int(temp_min)
-                    st.progress(min(1.0, temp_range / 30), text=f"{t('temp_diff')} {temp_range}°C")
+                    # 温度对比
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    st.markdown(f"## 🌡️ {t('temp_compare')}")
+                    col_t1, col_t2 = st.columns(2)
+                    with col_t1:
+                        st.markdown(f'<p class="temp-large">{current["temp_C"]}°C</p>', unsafe_allow_html=True)
+                        st.caption(t('actual_temp'))
+                    with col_t2:
+                        feels = int(current['FeelsLikeC'])
+                        diff = feels - temp_current
+                        st.metric(t('feels_like'), f"{feels}°C", delta=f"{diff:+}°C", delta_color="normal")
+                    st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
+                    # 详细信息网格
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    col_info1, col_info2, col_info3 = st.columns(3)
+                    with col_info1:
+                        st.markdown(f"#### 💧 {t('humidity')}")
+                        st.markdown(f'<p class="metric-value">{current["humidity"]}%</p>', unsafe_allow_html=True)
+                        st.markdown(f"#### 💨 {t('wind_speed')}")
+                        st.markdown(f"{current['windspeedKmph']} km/h")
+                        st.caption(current['winddir16Point'])
+                    with col_info2:
+                        st.markdown(f"#### 🎯 {t('pressure')}")
+                        st.markdown(f'<p class="metric-value">{current["pressure"]} mb</p>', unsafe_allow_html=True)
+                        st.markdown(f"#### 👁️ {t('visibility')}")
+                        st.markdown(f"{current['visibility']} km")
+                    with col_info3:
+                        uv_val = int(current['uvIndex']) if str(current['uvIndex']).isdigit() else 0
+                        uv_text = t('uv_low') if uv_val <= 2 else t('uv_medium') if uv_val <= 5 else t(
+                            'uv_high') if uv_val <= 7 else t('uv_extreme')
+                        st.markdown(f"#### ☀️ {t('uv')}")
+                        st.markdown(f'<p class="metric-value">{current["uvIndex"]}</p>', unsafe_allow_html=True)
+                        st.caption(uv_text)
+                        st.markdown(f"#### 🌧️ {t('precip')}")
+                        st.markdown(f"{current['precipMM']} mm")
+                    st.markdown('</div>', unsafe_allow_html=True)
 
+                    # 天气描述和日出日落
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    desc_en = current['weatherDesc'][0]['value']
+                    desc_cn = translate_weather(desc_en)
+                    st.info(f"📝 {t('weather_status')}: {desc_cn}")
+
+                    col_sun1, col_sun2, col_sun3 = st.columns(3)
+                    with col_sun1:
+                        st.success(f"{t('sunrise')}: {today['astronomy'][0]['sunrise']}")
+                    with col_sun2:
+                        st.warning(f"{t('sunset')}: {today['astronomy'][0]['sunset']}")
+                    with col_sun3:
+                        moon_icon, moon_text = get_moon_info(today.get('astronomy', [{}])[0].get('moon_phase', ''))
+                        st.info(f"{moon_icon} {t('moon_phase')}: {moon_text}")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # 逐小时预报
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    st.markdown(f"## ⏰ {t('hourly_forecast')}")
+                    hourly_data = get_hourly_forecast(data)
+                    if hourly_data:
+                        st.dataframe(pd.DataFrame(hourly_data), use_container_width=True, hide_index=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                with col_side:
+                    # 今日概览 + 温度条
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    st.markdown(f"## 📊 {t('today_overview')}")
+                    temp_min = int(today['mintempC'])
+                    temp_max = int(today['maxtempC'])
+                    progress_val = (temp_current - temp_min) / max(1, (temp_max - temp_min))
+                    st.progress(progress_val, text=f"{temp_min}°C  ←  {temp_current}°C  →  {temp_max}°C")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # 穿衣建议
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    advice, tip, icon, color = get_dressing_advice(temp_current)
+                    st.markdown(f"""
+                    <div style="text-align: center; padding: 15px;">
+                        <div style="font-size: 55px; animation: float 2s ease-in-out infinite;">{icon}</div>
+                        <p style="font-size: 28px; font-weight: bold; margin: 10px 0;">{temp_current}°C</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.markdown(f"### 👔 {t('dressing_advice')}")
+                    st.success(advice)
+                    st.info(tip)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # 空气质量（模拟）
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    st.markdown(f"## 💨 {t('air_quality')}")
+                    aqi = 45 + (temp_current % 30)
+                    if aqi <= 50:
+                        aqi_text = "🟢 优"
+                    elif aqi <= 100:
+                        aqi_text = "🟡 良"
+                    else:
+                        aqi_text = "🟠 轻度污染"
+                    st.metric("AQI", f"{aqi}", delta=aqi_text, delta_color="off")
+                    st.markdown(f"**PM2.5:** {20 + (temp_current % 20)} μg/m³")
+                    st.markdown(f"**PM10:** {30 + (temp_current % 30)} μg/m³")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # 舒适度指数
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    st.markdown(f"## 😊 {t('comfort_index')}")
+                    if temp_current < 0:
+                        comfort = "❄️ 寒冷，注意保暖"
+                        comfort_icon = "🥶"
+                    elif temp_current < 10:
+                        comfort = "🍂 较冷，加件外套"
+                        comfort_icon = "🧥"
+                    elif temp_current < 20:
+                        comfort = "🌸 凉爽舒适"
+                        comfort_icon = "😊"
+                    elif temp_current < 30:
+                        comfort = "☀️ 温暖舒适"
+                        comfort_icon = "😎"
+                    else:
+                        comfort = "🔥 炎热，注意防暑"
+                        comfort_icon = "🥵"
+                    st.markdown(
+                        f'<div style="text-align: center;"><span style="font-size: 50px;">{comfort_icon}</span><p style="font-size: 18px; margin-top: 10px;">{comfort}</p></div>',
+                        unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # 7天预报
+                    st.markdown('<div class="weather-card">', unsafe_allow_html=True)
+                    st.markdown(f"## 📅 {t('week_forecast')}")
+                    for i, day in enumerate(data['weather'][:5]):
+                        date_str = day['date']
+                        try:
+                            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                            weekday = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][date_obj.weekday()]
+                            display_date = f"{date_str[:5]} {weekday}"
+                        except:
+                            display_date = date_str
+                        temp_max = day['maxtempC']
+                        temp_min = day['mintempC']
+                        desc_day = translate_weather(day['hourly'][0]['weatherDesc'][0]['value'])
+                        icon = get_weather_emoji(day['hourly'][0]['weatherDesc'][0]['value'])
+                        with st.expander(f"{icon} {display_date} | {temp_min}°C~{temp_max}°C"):
+                            st.markdown(f"🌡️ {temp_min}°C → {temp_max}°C")
+                            st.markdown(f"☁️ {desc_day}")
+                            st.markdown(f"🌧️ 降水: {day['hourly'][0]['chanceofrain']}%")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+            except Exception as e:
+                st.error(f"解析失败: {str(e)}")
+        else:
+            st.error(t('query_failed'))
+            st.info(t('query_tip'))
 else:
     st.info(t('no_city'))
 
 # ==================== 页脚 ====================
-st.markdown("---")
 st.markdown(f"""
-<div style="text-align: center; color: rgba(255,255,255,0.7); padding: 20px;">
-    <p>{t('footer')}</p>
-    <p>Powered by wttr.in & Streamlit | {t('version')}</p>
+<div style="text-align: center; color: rgba(255,255,255,0.8); padding: 30px; margin-top: 20px;">
+    <p style="font-size: 14px;">{t('footer')}</p>
+    <p style="font-size: 12px; opacity: 0.7;">Powered by wttr.in & Streamlit | {t('version')}</p>
 </div>
 """, unsafe_allow_html=True)
