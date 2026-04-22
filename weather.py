@@ -450,11 +450,18 @@ def export_weather_report(city, current, today):
 """
     return report
 
-
+ss
 # ==================== 应用主题色 ====================
 color1, color2 = get_current_colors()
-card_bg = "rgba(255,255,255,0.92)" if st.session_state.theme_mode == 'light' else "rgba(30,30,50,0.92)"
-text_color = "#333" if st.session_state.theme_mode == 'light' else "#eee"
+
+if st.session_state.theme_mode == 'dark':
+    card_bg = "rgba(30,30,50,0.95)"
+    text_color = "#eee"
+    sub_text_color = "#aaa"  # 添加这一行
+else:
+    card_bg = "rgba(255,255,255,0.95)"
+    text_color = "#333"
+    sub_text_color = "#888"  # 添加这一行
 
 st.markdown(f"""
 <style>
